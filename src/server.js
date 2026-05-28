@@ -5,6 +5,10 @@ import { connectDB } from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import alertRoutes from './routes/alertRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
+import productRoutes from './routes/productRoutes.js';
+import movementRoutes from './routes/movementRoutes.js';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -22,6 +26,10 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/alerts', alertRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/movements', movementRoutes);
 
 // Ruta base / de prueba
 app.get('/', (req, res) => {
