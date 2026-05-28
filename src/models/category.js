@@ -27,12 +27,6 @@ const CategorySchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Virtual para emular el conteo dinámico de productos vinculados
-CategorySchema.virtual('productCount').get(function() {
-  // Aquí podrías contar cuántos productos tienen el ID de esta categoría. 
-  // Por ahora lo inicializamos en 0 o un valor base para hacer match con el Front.
-  return this._productCount || 0;
-});
 
 // ==========================================
 // APLICACIÓN DE CORRECCIÓN DE EXPORTACIÓN (ES6)
