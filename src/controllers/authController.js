@@ -1,4 +1,4 @@
-import User from '../models/User.js';
+import UserAdapter from '../adapters/MongooseUserAdapter.js';
 import jwt from 'jsonwebtoken';
 
 export const login = async (req, res) => {
@@ -9,7 +9,7 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: 'El correo electrónico y la contraseña son requeridos' });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() }).populate('role');
+    const user = await UserAdapter.findOne({ email: email.toLowerCase() }, ['role']);
     if (!user) {
       return res.status(401).json({ message: 'Credenciales incorrectas' });
     }

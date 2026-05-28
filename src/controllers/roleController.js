@@ -1,16 +1,16 @@
-import Role from '../models/Role.js';
-import User from '../models/User.js';
+import RoleAdapter from '../adapters/MongooseRoleAdapter.js';
+import UserAdapter from '../adapters/MongooseUserAdapter.js';
 
 // Obtener todos los roles
 export const getRoles = async (req, res) => {
   try {
-    const roles = await Role.find({});
+    const roles = await RoleAdapter.findAll({});
     // Actualizar dinámicamente los contadores de usuarios por rol
     const updatedRoles = await Promise.all(roles.map(async (role) => {
-      const count = await User.countDocuments({ role: role._id });
+      const count = await UserAdapter.count({ role: role._id });
       if (role.userCount !== count) {
         role.userCount = count;
-        await role.save();
+        await RoleAdapter.update(role._id, { userCount: count });
       }
       return role;
     }));
@@ -29,20 +29,18 @@ export const createRole = async (req, res) => {
       return res.status(400).json({ message: 'El nombre y la descripción son requeridos' });
     }
 
-    const existingRole = await Role.findOne({ name });
+    const existingRole = await RoleAdapter.findOne({ name });
     if (existingRole) {
       return res.status(400).json({ message: 'Ya existe un rol con ese nombre' });
     }
 
-    const newRole = new Role({
+    const newRole = await RoleAdapter.create({
       name,
       description,
       permissions: permissions || [],
       status: 'active',
       userCount: 0
     });
-
-    await newRole.save();
     return res.status(201).json(newRole);
   } catch (error) {
     console.error('Error al crear rol:', error);
@@ -55,7 +53,7 @@ export const updateRole = async (req, res) => {
   const { id } = req.params;
   const { name, description, permissions } = req.body;
   try {
-    const role = await Role.findById(id);
+    const role = await RoleAdapter.findById(id);
     if (!role) {
       return res.status(404).json({ message: 'Rol no encontrado' });
     }
@@ -66,12 +64,11 @@ export const updateRole = async (req, res) => {
       role.permissions = permissions;
     }
 
-    await role.save();
-
     // Actualizar el conteo final (ahora se busca por ObjectId)
-    const count = await User.countDocuments({ role: role._id });
+    const count = await UserAdapter.count({ role: role._id });
     role.userCount = count;
-    await role.save();
+    
+    await RoleAdapter.update(role._id, role);
 
     return res.status(200).json(role);
   } catch (error) {
@@ -84,13 +81,13 @@ export const updateRole = async (req, res) => {
 export const toggleRoleStatus = async (req, res) => {
   const { id } = req.params;
   try {
-    const role = await Role.findById(id);
+    const role = await RoleAdapter.findById(id);
     if (!role) {
       return res.status(404).json({ message: 'Rol no encontrado' });
     }
 
     role.status = role.status === 'active' ? 'inactive' : 'active';
-    await role.save();
+    await RoleAdapter.update(role._id, { status: role.status });
 
     return res.status(200).json(role);
   } catch (error) {

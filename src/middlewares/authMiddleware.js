@@ -18,3 +18,32 @@ export const authMiddleware = (req, res, next) => {
     return res.status(401).json({ message: 'Acceso denegado. Token inválido o expirado.' });
   }
 };
+
+import AuthStrategyContext from '../strategies/AuthStrategyContext.js';
+import RoleAdapter from '../adapters/MongooseRoleAdapter.js';
+
+export const authorizeAction = (action) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user || !req.user.role) {
+        return res.status(403).json({ message: 'No tienes permisos suficientes.' });
+      }
+
+      // Obtener el nombre del rol a partir del ID en el token
+      const roleDoc = await RoleAdapter.findById(req.user.role);
+      if (!roleDoc) {
+        return res.status(403).json({ message: 'Rol inválido.' });
+      }
+
+      const strategyContext = new AuthStrategyContext(roleDoc.name);
+      if (!strategyContext.canAccess(action)) {
+        return res.status(403).json({ message: 'Acceso denegado a esta funcionalidad.' });
+      }
+
+      next();
+    } catch (error) {
+      console.error('Error in authorizeAction:', error);
+      return res.status(500).json({ message: 'Error interno de validación' });
+    }
+  };
+};

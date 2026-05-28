@@ -1,11 +1,11 @@
 import express from 'express';
-import { createProduct, getProducts, updateProduct, deleteProduct } from '../controllers/productController.js';
+import { createProduct, getProducts, updateProduct } from '../controllers/productController.js';
+import { authMiddleware, authorizeAction } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/', createProduct);
-router.get('/', getProducts);
-router.put('/:id', updateProduct);
-router.delete('/:id', deleteProduct);
+router.get('/', authMiddleware, authorizeAction('products_view'), getProducts);
+router.post('/', authMiddleware, authorizeAction('products_edit'), createProduct);
+router.put('/:id', authMiddleware, authorizeAction('products_edit'), updateProduct);
 
-export default router; // <-- Esto es lo que server.js va a capturar
+export default router;

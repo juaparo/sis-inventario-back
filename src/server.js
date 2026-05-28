@@ -8,6 +8,9 @@ import userRoutes from './routes/userRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js'; 
 // 👇 SOLUCIÓN: Importación de las rutas de productos para definir la variable 👇
 import productRoutes from './routes/productRoutes.js'; 
+import movementRoutes from './routes/movementRoutes.js';
+import searchRoutes from './routes/searchRoutes.js';
+import alertRoutes from './routes/alertRoutes.js';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -27,6 +30,9 @@ app.use('/api/roles', roleRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes); 
 app.use('/api/products', productRoutes); // <-- Ahora la variable compila con éxito
+app.use('/api/movements', movementRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/alerts', alertRoutes);
 
 // Ruta base / de prueba
 app.get('/', (req, res) => {

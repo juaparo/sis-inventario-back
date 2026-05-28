@@ -1,9 +1,8 @@
-import Category from '../models/Category.js';
-import mongoose from 'mongoose';
+import CategoryAdapter from '../adapters/MongooseCategoryAdapter.js';
 
 export const getCategories = async (req, res, next) => {
   try {
-    const categories = await Category.aggregate([
+    const categories = await CategoryAdapter.aggregate([
       // 1. Convertimos el _id a string para que coincida con el campo 'category' de tus productos
       {
         $addFields: {
@@ -33,10 +32,10 @@ export const getCategories = async (req, res, next) => {
       },
       { $sort: { createdAt: -1 } }
     ]);
-    
+
     res.status(200).json(categories);
   } catch (error) {
-    next(error); 
+    next(error);
   }
 };
 
@@ -44,12 +43,11 @@ export const getCategories = async (req, res, next) => {
 export const createCategory = async (req, res, next) => {
   try {
     const { name, description, status } = req.body;
-    const newCategory = new Category({
+    const savedCategory = await CategoryAdapter.create({
       name,
       description,
       status: status || 'active'
     });
-    const savedCategory = await newCategory.save();
     res.status(201).json(savedCategory);
   } catch (error) {
     if (error.code === 11000) {
@@ -63,10 +61,9 @@ export const createCategory = async (req, res, next) => {
 export const updateCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const updatedCategory = await Category.findByIdAndUpdate(
+    const updatedCategory = await CategoryAdapter.update(
       id,
-      req.body,
-      { new: true, runValidators: true }
+      req.body
     );
     if (!updatedCategory) {
       return res.status(404).json({ message: 'La categoría no existe.' });
