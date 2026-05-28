@@ -95,3 +95,16 @@ Ahora la API tiene datos de prueba y puedes consumirlos desde el frontend.
 
 ## 📜 Licencia
 Este proyecto está bajo la licencia MIT. Consulta el archivo `LICENSE` para más información.
+
+---
+
+## 👥 Usuarios de Prueba (Seed)
+Al ejecutar el script de *seeding* (`npm run seed` o `node src/scripts/seed.js`), el sistema genera automáticamente usuarios con perfiles predefinidos para facilitar las pruebas del frontend.
+
+| Rol | Correo / Usuario | Contraseña |
+| --- | --- | --- |
+| **Administrador** | `admin@inventario.com` | `admin123` |
+| **Gerente** | `gerente@inventario.com` | `gerente123` |
+| **Auxiliar de Bodega** | `auxiliar@inventario.com` | `auxiliar123` |
+
+Estos usuarios cuentan con los permisos estrictamente delimitados a su rol según el esquema de seguridad (Estrategia de Roles).
