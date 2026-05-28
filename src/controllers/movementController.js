@@ -1,75 +1,77 @@
-import Movement from '../models/Movement.js';
-import Product from '../models/Product.js';
-import { createAlert } from './alertController.js';
+import MovementAdapter from '../adapters/MongooseMovementAdapter.js';
+import ProductAdapter from '../adapters/MongooseProductAdapter.js';
+import MovementFactory from '../factories/MovementFactory.js';
+import ReportFactory from '../factories/ReportFactory.js';
+import StockObserver from '../observers/StockObserver.js';
 
-// Obtener todos los movimientos
-export const getMovements = async (req, res) => {
-  try {
-    const movements = await Movement.find({})
-      .populate('producto', 'nombre stockActual stockMinimo')
-      .populate('usuario', 'name email')
-      .sort({ fecha: -1 });
-    return res.status(200).json(movements);
-  } catch (error) {
-    console.error('Error al obtener movimientos:', error);
-    return res.status(500).json({ message: 'Error al obtener los movimientos' });
-  }
-};
-
-// Registrar un movimiento (registrarEntrada / registrarSalida del diagrama)
 export const createMovement = async (req, res) => {
-  const { tipoMovimiento, cantidad, productoId } = req.body;
-  const usuarioId = req.user.id;
-
   try {
-    if (!tipoMovimiento || !cantidad || !productoId) {
-      return res.status(400).json({ message: 'Tipo de movimiento, cantidad y producto son requeridos' });
-    }
+    const { type, product, quantity, reason, user, supplier } = req.body;
 
-    const product = await Product.findById(productoId);
-    if (!product) {
+    // Validar producto
+    const productDoc = await ProductAdapter.findById(product);
+    if (!productDoc) {
       return res.status(404).json({ message: 'Producto no encontrado' });
     }
 
-    if (!product.activo) {
-      return res.status(400).json({ message: 'No se pueden registrar movimientos de un producto inactivo' });
+    if (productDoc.status === 'inactivo' || productDoc.status === 'inhabilitado') {
+      return res.status(400).json({ message: 'No se pueden hacer movimientos de un producto inactivo' });
     }
 
-    // actualizarStock según tipoMovimiento (método del diagrama Producto)
-    const movement = new Movement({
-      tipoMovimiento,
-      cantidad,
-      fecha: new Date(),
-      usuario: usuarioId,
-      producto: product._id
+    // Validar stock para salida
+    if (type === 'SALIDA' && productDoc.stock < quantity) {
+      return res.status(400).json({ message: 'Stock insuficiente para la salida' });
+    }
+
+    // Factory method
+    const movementData = MovementFactory.createMovement(type, {
+      product,
+      quantity,
+      reason,
+      user,
+      supplier
     });
 
-    // validarStock(): boolean — método del diagrama Movimiento
-    if (!movement.validarStock(product.stockActual)) {
-      return res.status(400).json({ message: `Stock insuficiente. Disponible: ${product.stockActual} uds` });
+    const savedMovement = await MovementAdapter.create(movementData);
+
+    // Actualizar stock del producto
+    if (type === 'ENTRADA') {
+      productDoc.stock += quantity;
+    } else if (type === 'SALIDA') {
+      productDoc.stock -= quantity;
     }
 
-    product.actualizarStock(tipoMovimiento, cantidad);
-    await product.save();
-    await movement.save();
+    await ProductAdapter.update(productDoc._id, { stock: productDoc.stock });
 
-    // genera: si tras el movimiento el stock queda bajo el mínimo, crear alerta
-    // validarStock() del diagrama IValidableStock
-    if (product.validarStock()) {
-      await createAlert({
-        mensaje: `Stock bajo tras movimiento (${tipoMovimiento}): "${product.nombre}" tiene ${product.stockActual} uds (mín: ${product.stockMinimo})`,
-        tipoOrigen: 'movimiento',
-        referenciaId: movement._id
-      });
+    if (type === 'SALIDA') {
+      StockObserver.emit('stockDecreased', productDoc);
     }
 
-    const populated = await Movement.findById(movement._id)
-      .populate('producto', 'nombre stockActual stockMinimo')
-      .populate('usuario', 'name email');
-
-    return res.status(201).json(populated);
+    res.status(201).json(savedMovement);
   } catch (error) {
-    console.error('Error al registrar movimiento:', error);
-    return res.status(500).json({ message: 'Error al registrar el movimiento' });
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getMovements = async (req, res) => {
+  try {
+    const movements = await MovementAdapter.findAll({}, ['product', 'user']);
+    res.status(200).json(movements);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const exportReport = async (req, res) => {
+  try {
+    const { format } = req.query; // 'PDF' o 'EXCEL'
+    const movements = await MovementAdapter.findAll({});
+
+    // Factory method
+    const report = ReportFactory.createReport(format || 'PDF', movements);
+
+    res.status(200).json(report);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 };

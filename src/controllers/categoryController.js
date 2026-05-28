@@ -1,79 +1,75 @@
-import Category from '../models/Category.js';
+import CategoryAdapter from '../adapters/MongooseCategoryAdapter.js';
 
-// Obtener todas las categorías
-export const getCategories = async (req, res) => {
+export const getCategories = async (req, res, next) => {
   try {
-    const categories = await Category.find({}).sort({ nombre: 1 });
-    return res.status(200).json(categories);
+    const categories = await CategoryAdapter.aggregate([
+      // 1. Convertimos el _id a string para que coincida con el campo 'category' de tus productos
+      {
+        $addFields: {
+          idString: { $toString: "$_id" }
+        }
+      },
+      // 2. Lookup usando el campo convertido
+      {
+        $lookup: {
+          from: 'products',
+          localField: 'name',         // <--- AJUSTE AQUÍ: Si tu producto guarda el NOMBRE de la cat.
+          foreignField: 'category',   // <--- AJUSTE AQUÍ: Como está en tu imagen (ej: "Electronica")
+          as: 'products_array'
+        }
+      },
+      // 3. Conteo y limpieza
+      {
+        $addFields: {
+          productCount: { $size: '$products_array' }
+        }
+      },
+      {
+        $project: {
+          products_array: 0,
+          idString: 0
+        }
+      },
+      { $sort: { createdAt: -1 } }
+    ]);
+
+    res.status(200).json(categories);
   } catch (error) {
-    console.error('Error al obtener categorías:', error);
-    return res.status(500).json({ message: 'Error al obtener las categorías' });
+    next(error);
   }
 };
 
-// Crear una categoría
-export const createCategory = async (req, res) => {
-  const { nombre, descripcion } = req.body;
+// POST - Crear una nueva categoría
+export const createCategory = async (req, res, next) => {
   try {
-    if (!nombre || !descripcion) {
-      return res.status(400).json({ message: 'El nombre y la descripción son requeridos' });
-    }
-
-    const existing = await Category.findOne({ nombre: nombre.trim() });
-    if (existing) {
-      return res.status(400).json({ message: 'Ya existe una categoría con ese nombre' });
-    }
-
-    const category = new Category({ nombre: nombre.trim(), descripcion: descripcion.trim() });
-    await category.save();
-    return res.status(201).json(category);
+    const { name, description, status } = req.body;
+    const savedCategory = await CategoryAdapter.create({
+      name,
+      description,
+      status: status || 'active'
+    });
+    res.status(201).json(savedCategory);
   } catch (error) {
-    console.error('Error al crear categoría:', error);
-    return res.status(500).json({ message: 'Error al crear la categoría' });
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'El nombre de la categoría ya existe.' });
+    }
+    next(error);
   }
 };
 
-// Actualizar una categoría
-export const updateCategory = async (req, res) => {
-  const { id } = req.params;
-  const { nombre, descripcion } = req.body;
+// PUT - Actualizar datos o cambiar estado
+export const updateCategory = async (req, res, next) => {
   try {
-    const category = await Category.findById(id);
-    if (!category) {
-      return res.status(404).json({ message: 'Categoría no encontrada' });
+    const { id } = req.params;
+    const updatedCategory = await CategoryAdapter.update(
+      id,
+      req.body
+    );
+    if (!updatedCategory) {
+      return res.status(404).json({ message: 'La categoría no existe.' });
     }
-
-    if (nombre && nombre.trim() !== category.nombre) {
-      const existing = await Category.findOne({ nombre: nombre.trim() });
-      if (existing) {
-        return res.status(400).json({ message: 'Ya existe una categoría con ese nombre' });
-      }
-      category.nombre = nombre.trim();
-    }
-
-    if (descripcion) category.descripcion = descripcion.trim();
-
-    await category.save();
-    return res.status(200).json(category);
+    res.status(200).json(updatedCategory);
   } catch (error) {
-    console.error('Error al actualizar categoría:', error);
-    return res.status(500).json({ message: 'Error al actualizar la categoría' });
-  }
-};
-
-// Alternar estado activo/inactivo
-export const toggleCategoryStatus = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const category = await Category.findById(id);
-    if (!category) {
-      return res.status(404).json({ message: 'Categoría no encontrada' });
-    }
-    // Nota: Categoría no tiene campo activo en el diagrama del Entregable 2
-    // Esta función queda como stub para extensión futura
-    return res.status(400).json({ message: 'La entidad Categoría no soporta cambio de estado según el diagrama de clases' });
-  } catch (error) {
-    console.error('Error al alternar estado de categoría:', error);
-    return res.status(500).json({ message: 'Error al alternar el estado de la categoría' });
+    next(error);
   }
 };

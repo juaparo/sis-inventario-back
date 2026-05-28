@@ -1,32 +1,23 @@
 import mongoose from 'mongoose';
 
-// S - Single Responsibility: este schema SOLO define la estructura de una alerta
 const AlertSchema = new mongoose.Schema({
-  mensaje: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  // fecha: campo explícito según diagrama de clases (Entregable 2)
-  fecha: {
-    type: Date,
-    default: Date.now,
+  product: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product',
     required: true
   },
-  leida: {
+  message: {
+    type: String,
+    required: true
+  },
+  level: {
+    type: String,
+    enum: ['LOW_STOCK', 'OUT_OF_STOCK'],
+    default: 'LOW_STOCK'
+  },
+  read: {
     type: Boolean,
     default: false
-  },
-  // tipoOrigen identifica si la alerta fue generada por un movimiento o un producto
-  tipoOrigen: {
-    type: String,
-    enum: ['movimiento', 'producto'],
-    required: true
-  },
-  // referenciaId guarda el _id del documento que generó la alerta (para redirección)
-  referenciaId: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true
   }
 }, {
   timestamps: true

@@ -13,10 +13,13 @@ const rolesData = [
       'dashboard_view',
       'products_view',
       'products_edit',
+      'categories_view',
       'categories_manage',
       'movements_create',
       'alerts_manage',
+      'users_view',
       'users_manage',
+      'roles_view',
       'roles_manage'
     ],
     status: 'active',
@@ -25,14 +28,27 @@ const rolesData = [
   {
     name: 'Gerente',
     description: 'Acceso básico del inventario',
-    permissions: ['dashboard_view', 'products_view', 'products_edit'],
+    permissions: [
+      'dashboard_view', 
+      'products_view', 
+      'products_edit',
+      'categories_view',
+      'categories_manage',
+      'movements_create',
+      'alerts_manage'
+    ],
     status: 'active',
     userCount: 0
   },
   {
     name: 'Auxiliar de Bodega',
     description: 'Acceso limitado',
-    permissions: ['movements_create'],
+    permissions: [
+      'dashboard_view',
+      'products_view',
+      'categories_view',
+      'movements_create'
+    ],
     status: 'active',
     userCount: 0
   }
