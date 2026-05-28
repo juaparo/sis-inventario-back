@@ -1,4 +1,4 @@
-import Product from '../models/product.js';
+import Product from '../models/Product.js';
 import Movement from '../models/Movement.js';
 import Alert from '../models/Alert.js';
 
