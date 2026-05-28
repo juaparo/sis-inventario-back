@@ -5,6 +5,9 @@ import { connectDB } from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js'; 
+// 👇 SOLUCIÓN: Importación de las rutas de productos para definir la variable 👇
+import productRoutes from './routes/productRoutes.js'; 
 
 // Cargar variables de entorno
 dotenv.config();
@@ -18,10 +21,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Rutas
+// Rutas Globales de la API
 app.use('/api/auth', authRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/categories', categoryRoutes); 
+app.use('/api/products', productRoutes); // <-- Ahora la variable compila con éxito
 
 // Ruta base / de prueba
 app.get('/', (req, res) => {
