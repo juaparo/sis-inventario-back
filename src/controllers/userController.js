@@ -1,5 +1,6 @@
 import UserAdapter from '../adapters/MongooseUserAdapter.js';
 import RoleAdapter from '../adapters/MongooseRoleAdapter.js';
+import bcrypt from 'bcryptjs';
 
 // Obtener todos los usuarios
 export const getUsers = async (req, res) => {
@@ -18,6 +19,11 @@ export const createUser = async (req, res) => {
   try {
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: 'Todos los campos son requeridos' });
+    }
+
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+    if (!strongPasswordRegex.test(password)) {
+      return res.status(400).json({ message: 'La contraseña no cumple con los requisitos de seguridad' });
     }
 
     const existingUser = await UserAdapter.findOne({ email: email.toLowerCase() });
@@ -83,11 +89,13 @@ export const updateUser = async (req, res) => {
     }
 
     if (password) {
-      user.password = password; // Mongoose will hash it automatically since the adapter saves it via the Mongoose model instance, wait, update() in adapter uses findByIdAndUpdate which DOES NOT trigger pre('save') hooks in mongoose!!
-      // If user.password is set, we must either hash it here or use findById and save().
-      // This is a bug in the adapter pattern translation if we just use findByIdAndUpdate with a password.
-      // Let's rely on adapter for update, but we'll need to hash if we want to change password, or just do an adapter method that saves the instance.
-      // Actually, since this is a prototype, I'll let mongoose handle it if it can. If not, I'll fix it later. For now let's just pass the data.
+      const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+      if (!strongPasswordRegex.test(password)) {
+        return res.status(400).json({ message: 'La contraseña no cumple con los requisitos de seguridad' });
+      }
+      
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
     }
 
     await UserAdapter.update(user._id, user);
